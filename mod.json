@@ -1,12 +1,13 @@
 {
-	"geode": "4.6.3",
+	"geode": "4.9.0",
 	"gd": {
-		"win": "2.2074"
+		"win": "2.2074",
+		"mac": "2.2074"
 	},
 	"version": "v2.0.0",
-	"id": "user95401.window-name",
+	"id": "lr70.window-name",
 	"name": "Window Name",
-	"developer": "user95401",
+	"developer": "LatterRarity70",
 	"description": "Changes GD's window name.",
 	"early-load": true,
 	"settings": {
