@@ -4,19 +4,18 @@
 
 #if defined(_WIN32)
     #include <windows.h>
-    #include <string>
 #else
     #include <filesystem>
-    #include <fstream>
     #include <objc/objc.h>
     #include <objc/message.h>
+    #include <CoreFoundation/CoreFoundation.h>
 #endif
 
 using namespace geode::prelude;
 
-inline bool fileExists(const std::string& path) {
+inline bool fileExists(const std::filesystem::path& path) {
 #if defined(_WIN32)
-    std::wstring wpath(path.begin(), path.end());
+    std::wstring wpath = path.wstring();
     DWORD attrs = GetFileAttributesW(wpath.c_str());
     return (attrs != INVALID_FILE_ATTRIBUTES) && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
 #else
@@ -24,53 +23,54 @@ inline bool fileExists(const std::string& path) {
 #endif
 }
 
-inline void copyFile(const std::string& from, const std::string& to) {
+inline void copyFile(const std::filesystem::path& from, const std::filesystem::path& to) {
 #if defined(_WIN32)
-    std::wstring wfrom(from.begin(), from.end());
-    std::wstring wto(to.begin(), to.end());
+    std::wstring wfrom = from.wstring();
+    std::wstring wto = to.wstring();
     (void)CopyFileW(wfrom.c_str(), wto.c_str(), FALSE);
 #else
     std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing);
 #endif
 }
 
-inline std::string makePath(const std::filesystem::path& base, const std::string& file) {
-#if defined(_WIN32)
-    std::wstring wpath = base.wstring() + L"\\" + std::wstring(file.begin(), file.end());
-    return std::string(wpath.begin(), wpath.end());
-#else
-    return (base / file).string();
-#endif
+inline std::filesystem::path makePath(const std::filesystem::path& base, const std::string& file) {
+    return base / file;
 }
 
 void CopyFromLocal() {
-    std::string gameFile = makePath(Mod::get()->getConfigDir(), "settings.json");
-    std::string saveFile = makePath(Mod::get()->getSaveDir(), "settings.json");
+    auto gameFile = makePath(Mod::get()->getConfigDir(), "settings.json");
+    auto saveFile = makePath(Mod::get()->getSaveDir(), "settings.json");
 
     if (!fileExists(gameFile)) return;
     copyFile(gameFile, saveFile);
 }
 
 void CopyFromData() {
-    std::string gameFile = makePath(Mod::get()->getConfigDir(), "settings.json");
-    std::string saveFile = makePath(Mod::get()->getSaveDir(), "settings.json");
+    auto gameFile = makePath(Mod::get()->getConfigDir(), "settings.json");
+    auto saveFile = makePath(Mod::get()->getSaveDir(), "settings.json");
 
     if (!fileExists(saveFile)) return;
     copyFile(saveFile, gameFile);
 }
 
-void updateWindowTitle() {
+inline void updateWindowTitle() {
     std::string name = Mod::get()->getSettingValue<std::string>("windowname");
 
 #if defined(_WIN32)
     HWND hwnd = GetActiveWindow();
     if (hwnd) SetWindowTextA(hwnd, name.c_str());
 #else
-    id nsApp = objc_msgSend((id)objc_getClass("NSApplication"), sel_getUid("sharedApplication"));
-    id mainWindow = objc_msgSend(nsApp, sel_getUid("mainWindow"));
+    id (*msgSend_id)(id, SEL) = (id (*)(id, SEL))objc_msgSend;
+    id (*msgSend_id_id)(id, SEL, id) = (id (*)(id, SEL, id))objc_msgSend;
+
+    id nsApp = msgSend_id((id)objc_getClass("NSApplication"), sel_getUid("sharedApplication"));
+    id mainWindow = msgSend_id(nsApp, sel_getUid("mainWindow"));
+
     if (mainWindow) {
-        id nsString = objc_msgSend((id)objc_getClass("NSString"), sel_getUid("stringWithUTF8String:"), name.c_str());
-        objc_msgSend(mainWindow, sel_getUid("setTitle:"), nsString);
+        CFStringRef cfStr = CFStringCreateWithCString(NULL, name.c_str(), kCFStringEncodingUTF8);
+        id nsString = (id)cfStr;
+        msgSend_id_id(mainWindow, sel_getUid("setTitle:"), nsString);
+        CFRelease(cfStr);
     }
 #endif
 }
