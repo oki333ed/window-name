@@ -34,6 +34,8 @@ jobs:
         uses: geode-sdk/build-geode-mod@main
         with:
           combine: true
+          export-pdb: true
+          bundle-pdb: true
           target: ${{ matrix.config.target }}
 
   upload:
