@@ -7,7 +7,7 @@
 	"version": "v3.0.0",
 	"id": "lr70.window-name",
 	"name": "Window Name",
-	"developer": "LatterRarity70",
+	"developer": "lil2kki",
 	"description": "Changes GD's window name.",
 	"early-load": true,
 	"resources": {
