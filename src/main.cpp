@@ -1,45 +1,16 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/AppDelegate.hpp>
+#include <filesystem>
 
 #if defined(_WIN32)
     #include <windows.h>
 #else
-    #include <filesystem>
     #include <objc/objc.h>
     #include <objc/message.h>
     #include <CoreFoundation/CoreFoundation.h>
 #endif
 
 using namespace geode::prelude;
-
-#include <Geode/loader/Dirs.hpp>
-void CopyRuntimeConfigToConfig() {
-    auto runtimeDir = Mod::get::Dirs()->getModRuntimeDir();
-    if (runtimeDir.empty()) return;
-
-    auto runtimeConfig = runtimeDir / "config";
-    auto configDir = Dirs::get()->getConfigDir();
-
-    if (!std::filesystem::exists(runtimeConfig) || 
-        !std::filesystem::is_directory(runtimeConfig))
-        return;
-
-    std::filesystem::create_directories(configDir);
-
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(runtimeConfig)) {
-        if (!entry.is_regular_file()) continue;
-
-        auto relative = std::filesystem::relative(entry.path(), runtimeConfig);
-        auto target = configDir / relative;
-
-        std::filesystem::create_directories(target.parent_path());
-        std::filesystem::copy_file(
-            entry.path(),
-            target,
-            std::filesystem::copy_options::overwrite_existing
-        );
-    }
-}
 
 inline bool fileExists(const std::filesystem::path& path) {
 #if defined(_WIN32)
@@ -104,7 +75,6 @@ inline void updateWindowTitle() {
 }
 
 #if defined(_WIN32)
-#include <windows.h>
 #include <gdiplus.h>
 #pragma comment(lib, "gdiplus.lib")
 #endif
@@ -174,12 +144,11 @@ class $modify(LoadingLayer) {
 
 $on_mod(Loaded) {
     CopyFromLocal();
-    CopyRuntimeConfigToConfig();
     Mod::get()->loadData();
-    geode::listenForSettingChanges("windowname", [](std::string) {
+    listenForSettingChanges<std::string>("windowname", [](std::string) {
         updateWindowTitle();
     });
-    geode::listenForSettingChanges("windowicon", [](const std::filesystem::path&) {
+    listenForSettingChanges<std::filesystem::path>("windowicon", [](const std::filesystem::path&) {
         updateWindowIcon();
     });
 }
