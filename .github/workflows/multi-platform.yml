@@ -36,6 +36,7 @@ jobs:
           combine: true
           export-pdb: true
           bundle-pdb: true
+          sdk: 'nighly'
           target: ${{ matrix.config.target }}
 
   upload:
