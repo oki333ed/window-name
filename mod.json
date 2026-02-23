@@ -1,20 +1,41 @@
 {
-	"geode": "5.0.0-alpha.1",
+	"geode": "5.0.0",
 	"gd": {
 		"win": "2.2081",
 		"mac": "2.2081"
 	},
-	"version": "v2.1.0",
+	"version": "v3.0.0",
 	"id": "lr70.window-name",
 	"name": "Window Name",
 	"developer": "LatterRarity70",
 	"description": "Changes GD's window name.",
 	"early-load": true,
+	"resources": {
+		"files": [
+			"resources/icons/*.png"
+		]
+	},
 	"settings": {
 		"windowname": {
 			"name": "Window Name",
 			"type": "string",
+			"description": "Geometry Dash title",
 			"default": "Geometry Dash"
+		},
+		"windowicon": {
+			"name": "Window Icon",
+			"type": "file",
+			"description": "Geometry Dash icon\nExample icons:\nGeometryDash.png - Original Geometry Dash icon\nMod.png - It's Mod icon",
+			"default": "{mod_resources_dir}/GeometryDash.png",
+			"control": {
+				"dialog": "open",
+				"filters": [
+					{
+						"files": ["*.png"],
+						"description": "Icon files"
+					}
+				]
+			}
 		}
 	}
 }
