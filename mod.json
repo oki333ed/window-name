@@ -10,6 +10,11 @@
 	"developer": "lil2kki",
 	"description": "Changes GD's window name.",
 	"early-load": true,
+	"links": {
+		"community": "https://discord.gg/6SxAbk3bTA",
+		"homepage": "https://t.me/user95401_channel",
+		"source": "https://github.com/lil2kki/window-name"
+	},
 	"resources": {
 		"files": [
 			"resources/icons/*.png"
