@@ -1,10 +1,10 @@
 {
-	"geode": "5.0.1",
+	"geode": "5.3.0",
 	"gd": {
 		"win": "2.2081",
 		"mac": "2.2081"
 	},
-	"version": "v3.0.0",
+	"version": "v3.0.1",
 	"id": "lr70.window-name",
 	"name": "Window Name",
 	"developer": "lil2kki",
