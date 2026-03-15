@@ -1,11 +1,10 @@
 #include <Geode/Geode.hpp>
-#include <Geode/modify/LoadingLayer.hpp>
 #include <Geode/modify/AppDelegate.hpp>
+#include <filesystem>
 
 #if defined(_WIN32)
     #include <windows.h>
 #else
-    #include <filesystem>
     #include <objc/objc.h>
     #include <objc/message.h>
     #include <CoreFoundation/CoreFoundation.h>
@@ -75,20 +74,86 @@ inline void updateWindowTitle() {
 #endif
 }
 
+#if defined(_WIN32)
+#include <gdiplus.h>
+#pragma comment(lib, "gdiplus.lib")
+#endif
+
+inline void updateWindowIcon() {
+    auto iconPath = Mod::get()->getSettingValue<std::filesystem::path>("windowicon");
+
+#if defined(_WIN32)
+    HWND hwnd = GetActiveWindow();
+    if (!hwnd || !fileExists(iconPath)) return;
+
+    static ULONG_PTR gdiplusToken = 0;
+    if (!gdiplusToken) {
+        Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+        Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, nullptr);
+    }
+
+    Gdiplus::Bitmap* bitmap = Gdiplus::Bitmap::FromFile(iconPath.wstring().c_str(), FALSE);
+    if (!bitmap || bitmap->GetLastStatus() != Gdiplus::Ok) {
+        delete bitmap;
+        return;
+    }
+
+    HICON hIcon = nullptr;
+    if (bitmap->GetHICON(&hIcon) == Gdiplus::Ok && hIcon) {
+        SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+        SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+    }
+
+    delete bitmap;
+
+#else
+    if (!fileExists(iconPath)) return;
+
+    id (*msgSend_id)(id, SEL) = (id (*)(id, SEL))objc_msgSend;
+    id (*msgSend_id_id)(id, SEL, id) = (id (*)(id, SEL, id))objc_msgSend;
+
+    id nsApp = msgSend_id((id)objc_getClass("NSApplication"), sel_getUid("sharedApplication"));
+
+    CFStringRef pathStr = CFStringCreateWithCString(NULL, iconPath.string().c_str(), kCFStringEncodingUTF8);
+
+    id nsURLClass = (id)objc_getClass("NSURL");
+    id nsURL = ((id (*)(id, SEL, CFStringRef))objc_msgSend)(
+        nsURLClass,
+        sel_getUid("fileURLWithPath:"),
+        pathStr
+    );
+
+    id nsImageClass = (id)objc_getClass("NSImage");
+    id image = msgSend_id(nsImageClass, sel_getUid("alloc"));
+    image = msgSend_id_id(image, sel_getUid("initWithContentsOfURL:"), nsURL);
+
+    if (image) {
+        msgSend_id_id(nsApp, sel_getUid("setApplicationIconImage:"), image);
+    }
+
+    CFRelease(pathStr);
+#endif
+}
+
+#include <Geode/modify/LoadingLayer.hpp>
 class $modify(LoadingLayer) {
     bool init(bool p0) {
         if (!LoadingLayer::init(p0))
             return false;
         updateWindowTitle();
+        updateWindowIcon();
         return true;
     }
 };
 
 $on_mod(Loaded) {
     CopyFromLocal();
-    Mod::get()->loadData();
-    geode::listenForSettingChanges("windowname", [](std::string) {
+    (void)Mod::get()->loadData();
+    listenForSettingChanges<std::string>("windowname", [](std::string) {
         updateWindowTitle();
+    });
+    listenForSettingChanges<std::filesystem::path>("windowicon", [](const std::filesystem::path&) {
+        updateWindowIcon();
     });
 }
 
