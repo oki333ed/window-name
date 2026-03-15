@@ -113,21 +113,25 @@ inline void updateWindowIcon() {
     id (*msgSend_id_id)(id, SEL, id) = (id (*)(id, SEL, id))objc_msgSend;
 
     id nsApp = msgSend_id((id)objc_getClass("NSApplication"), sel_getUid("sharedApplication"));
-    id mainWindow = msgSend_id(nsApp, sel_getUid("mainWindow"));
-    if (!mainWindow) return;
 
     CFStringRef pathStr = CFStringCreateWithCString(NULL, iconPath.string().c_str(), kCFStringEncodingUTF8);
-    id nsPath = (id)CFBridgingRelease(CFURLCreateWithFileSystemPath(NULL, pathStr, kCFURLPOSIXPathStyle, false));
-    CFRelease(pathStr);
+
+    id nsURLClass = (id)objc_getClass("NSURL");
+    id nsURL = ((id (*)(id, SEL, CFStringRef))objc_msgSend)(
+        nsURLClass,
+        sel_getUid("fileURLWithPath:"),
+        pathStr
+    );
 
     id nsImageClass = (id)objc_getClass("NSImage");
-    id iconImage = msgSend_id_id(nsImageClass, sel_getUid("alloc"), nullptr);
-    iconImage = msgSend_id_id(iconImage, sel_getUid("initWithContentsOfURL:"), nsPath);
+    id image = msgSend_id(nsImageClass, sel_getUid("alloc"));
+    image = msgSend_id_id(image, sel_getUid("initWithContentsOfURL:"), nsURL);
 
-    if (iconImage) {
-        msgSend_id_id(mainWindow, sel_getUid("setRepresentedURL:"), nsPath);
-        msgSend_id_id(mainWindow, sel_getUid("setStandardWindowButton:forButtonType:"), iconImage);
+    if (image) {
+        msgSend_id_id(nsApp, sel_getUid("setApplicationIconImage:"), image);
     }
+
+    CFRelease(pathStr);
 #endif
 }
 
@@ -144,7 +148,7 @@ class $modify(LoadingLayer) {
 
 $on_mod(Loaded) {
     CopyFromLocal();
-    Mod::get()->loadData();
+    (void)Mod::get()->loadData();
     listenForSettingChanges<std::string>("windowname", [](std::string) {
         updateWindowTitle();
     });
