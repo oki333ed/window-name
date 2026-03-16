@@ -13,23 +13,13 @@
 using namespace geode::prelude;
 
 inline bool fileExists(const std::filesystem::path& path) {
-#if defined(_WIN32)
-    std::wstring wpath = path.wstring();
-    DWORD attrs = GetFileAttributesW(wpath.c_str());
-    return (attrs != INVALID_FILE_ATTRIBUTES) && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
-#else
-    return std::filesystem::exists(path);
-#endif
+    std::error_code ec;
+    return std::filesystem::exists(path, ec) && !ec;
 }
 
 inline void copyFile(const std::filesystem::path& from, const std::filesystem::path& to) {
-#if defined(_WIN32)
-    std::wstring wfrom = from.wstring();
-    std::wstring wto = to.wstring();
-    (void)CopyFileW(wfrom.c_str(), wto.c_str(), FALSE);
-#else
-    std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing);
-#endif
+    std::error_code ec;
+    std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing, ec);
 }
 
 inline std::filesystem::path makePath(const std::filesystem::path& base, const std::string& file) {
@@ -157,9 +147,6 @@ $on_mod(Loaded) {
     });
 }
 
-class $modify(AppDelegate) {
-    void trySaveGame(bool p0) {
-        AppDelegate::trySaveGame(p0);
-        CopyFromData();
-    }
-};
+$on_mod(DataSaved) {
+    CopyFromData();
+}
