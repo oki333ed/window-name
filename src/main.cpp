@@ -109,29 +109,42 @@ inline void updateWindowIcon() {
 #else
     if (!fileExists(iconPath)) return;
 
-    id (*msgSend_id)(id, SEL) = (id (*)(id, SEL))objc_msgSend;
-    id (*msgSend_id_id)(id, SEL, id) = (id (*)(id, SEL, id))objc_msgSend;
+    std::string pathCopy = iconPath.u8string();
 
-    id nsApp = msgSend_id((id)objc_getClass("NSApplication"), sel_getUid("sharedApplication"));
+    dispatch_async(dispatch_get_main_queue(), ^{
+        id (*msgSend_id)(id, SEL) = (id (*)(id, SEL))objc_msgSend;
+        id (*msgSend_id_id)(id, SEL, id) = (id (*)(id, SEL, id))objc_msgSend;
+        id (*msgSend_id_cf)(id, SEL, CFStringRef) = (id (*)(id, SEL, CFStringRef))objc_msgSend;
 
-    CFStringRef pathStr = CFStringCreateWithCString(NULL, iconPath.string().c_str(), kCFStringEncodingUTF8);
+        id nsApp = msgSend_id((id)objc_getClass("NSApplication"), sel_getUid("sharedApplication"));
+        if (!nsApp) return;
 
-    id nsURLClass = (id)objc_getClass("NSURL");
-    id nsURL = ((id (*)(id, SEL, CFStringRef))objc_msgSend)(
-        nsURLClass,
-        sel_getUid("fileURLWithPath:"),
-        pathStr
-    );
+        CFStringRef pathStr = CFStringCreateWithCString(
+            NULL,
+            pathCopy.c_str(),
+            kCFStringEncodingUTF8
+        );
 
-    id nsImageClass = (id)objc_getClass("NSImage");
-    id image = msgSend_id(nsImageClass, sel_getUid("alloc"));
-    image = msgSend_id_id(image, sel_getUid("initWithContentsOfURL:"), nsURL);
+        if (!pathStr) return;
 
-    if (image) {
-        msgSend_id_id(nsApp, sel_getUid("setApplicationIconImage:"), image);
-    }
+        id nsURLClass = (id)objc_getClass("NSURL");
+        id nsURL = msgSend_id_cf(nsURLClass, sel_getUid("fileURLWithPath:"), pathStr);
 
-    CFRelease(pathStr);
+        if (!nsURL) {
+            CFRelease(pathStr);
+            return;
+        }
+
+        id nsImageClass = (id)objc_getClass("NSImage");
+        id image = msgSend_id(nsImageClass, sel_getUid("alloc"));
+        image = msgSend_id_id(image, sel_getUid("initWithContentsOfURL:"), nsURL);
+
+        if (image != nullptr) {
+            msgSend_id_id(nsApp, sel_getUid("setApplicationIconImage:"), image);
+        }
+
+        CFRelease(pathStr);
+    });
 #endif
 }
 
