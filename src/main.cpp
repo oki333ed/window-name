@@ -49,18 +49,28 @@ inline void updateWindowTitle() {
     HWND hwnd = GetActiveWindow();
     if (hwnd) SetWindowTextA(hwnd, name.c_str());
 #else
-    id (*msgSend_id)(id, SEL) = (id (*)(id, SEL))objc_msgSend;
-    id (*msgSend_id_id)(id, SEL, id) = (id (*)(id, SEL, id))objc_msgSend;
+    std::string nameCopy = name;
 
-    id nsApp = msgSend_id((id)objc_getClass("NSApplication"), sel_getUid("sharedApplication"));
-    id mainWindow = msgSend_id(nsApp, sel_getUid("mainWindow"));
+    dispatch_async(dispatch_get_main_queue(), ^{
+        id (*msgSend_id)(id, SEL) = (id (*)(id, SEL))objc_msgSend;
+        id (*msgSend_id_id)(id, SEL, id) = (id (*)(id, SEL, id))objc_msgSend;
 
-    if (mainWindow) {
-        CFStringRef cfStr = CFStringCreateWithCString(NULL, name.c_str(), kCFStringEncodingUTF8);
-        id nsString = (id)cfStr;
-        msgSend_id_id(mainWindow, sel_getUid("setTitle:"), nsString);
+        id nsApp = msgSend_id((id)objc_getClass("NSApplication"), sel_getUid("sharedApplication"));
+        id mainWindow = msgSend_id(nsApp, sel_getUid("mainWindow"));
+
+        if (!mainWindow) return;
+
+        CFStringRef cfStr = CFStringCreateWithCString(
+            NULL,
+            nameCopy.c_str(),
+            kCFStringEncodingUTF8
+        );
+
+        if (!cfStr) return;
+
+        msgSend_id_id(mainWindow, sel_getUid("setTitle:"), (id)cfStr);
         CFRelease(cfStr);
-    }
+    });
 #endif
 }
 
