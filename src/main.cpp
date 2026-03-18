@@ -109,7 +109,8 @@ inline void updateWindowIcon() {
 #else
     if (!fileExists(iconPath)) return;
 
-    std::string pathCopy = iconPath.u8string();
+    auto pathU8 = iconPath.u8string();
+    std::string pathCopy(reinterpret_cast<const char*>(pathU8.c_str()));
 
     dispatch_async(dispatch_get_main_queue(), ^{
         id (*msgSend_id)(id, SEL) = (id (*)(id, SEL))objc_msgSend;
