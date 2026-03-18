@@ -34,9 +34,6 @@
 			"name": "Window Icon",
 			"type": "file",
 			"description": "Geometry Dash icon\nExample icons:\nGeometryDash.png - Original Geometry Dash icon\nMod.png - It's Mod icon",
-			"platforms": {
-				"win"
-			},
 			"default": "{mod_resources_dir}/GeometryDash.png",
 			"control": {
 				"dialog": "open",
